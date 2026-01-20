@@ -1,26 +1,25 @@
-import express from 'express';
-import mongoose from 'mongoose';
+import express, { json } from 'express';
+import { connect, Schema, model } from 'mongoose';
 import cors from 'cors';
 
 const app = express();
 
 const port = process.env.PORT || 5000;
-const mongoURI = process.env.PORT.mongo_URI || 'mongodb://localhost:27017/todolist';
+const mongoURI = process.env.MONGO_URI || 'mongodb://localhost:27017/todolist';
 
 app.use(cors());
-app.use(express.json());
+app.use(json());
 
-mongoose
-  .connect(mongoURI)
-  .then(() => console.log('MongoDB connect'))
-  .catch((err) => console.error('Error connecting to mongo', err));
+connect(mongoURI)
+  .then(() => console.log('Connected MongoDB'))
+  .catch((err) => console.error('Error connecting to Mongo:', err));
 
-const TodoSchema = new message.mongoose.schema({
-  text: string,
+const TodoSchema = new Schema({
+  text: String,
   completed: { type: Boolean, default: false },
 });
 
-const Todo = mongoose.model('Todo', TodoSchema);
+const Todo = model('Todo', TodoSchema);
 
 app.get('/todos', async (req, res) => {
   const todos = await Todo.find();
@@ -34,17 +33,17 @@ app.post('/todos', async (req, res) => {
 });
 
 app.put('/todos/:id', async (req, res) => {
-  await Todo.findById(req.params.id);
-  await Todo.save();
-  res.json(Todo);
+  const todo = await Todo.findById(req.params.id);
+  todo.completed = !todo.completed;
+  await todo.save();
+  res.json(todo);
 });
 
-(app.delete('/todos/:id'),
-  async (req, res) => {
-    await Todo.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Deleted task' });
-  });
+app.delete('/todos/:id', async (req, res) => {
+  await Todo.findByIdAndDelete(req.params.id);
+  res.json({ message: 'Deleted task' });
+});
 
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  console.log(` Server running on port ${port}`);
 });
