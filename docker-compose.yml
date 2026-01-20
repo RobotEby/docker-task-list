@@ -45,7 +45,7 @@ services:
   tests:
     build: ./backend
     container_name: todo_tests
-    command: npm test 
+    command: yarn test 
     environment:
       MONGO_URI: mongodb://db:27017/todolist_test
     depends_on:
