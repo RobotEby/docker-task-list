@@ -1,0 +1,28 @@
+name: Docker Todo-List CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and Spin up Docker
+        run: docker-compose up -d db api
+
+      - name: Wait for services to be ready
+        run: sleep 15
+
+      - name: Run Tests
+        run: docker-compose run --rm tests
+
+      - name: Shutdown Docker
+        if: always()
+        run: docker-compose down
