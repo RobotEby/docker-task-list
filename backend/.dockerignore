@@ -1,5 +1,6 @@
-# Exclude the node_modules folder in the root directory
 node_modules
-
-# Exclude node_modules folders in any subdirectory (useful for monorepos)
-**/node_modules
+npm-debug.log
+.env
+.git
+.gitignore
+README.md

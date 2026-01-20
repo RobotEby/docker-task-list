@@ -1,5 +1,8 @@
-# Exclude the node_modules folder in the root directory
 node_modules
-
-# Exclude node_modules folders in any subdirectory (useful for monorepos)
-**/node_modules
+dist
+.env
+.git
+.gitignore
+README.md
+docker-compose.yml
+Dockerfile
