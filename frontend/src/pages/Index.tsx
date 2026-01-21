@@ -35,7 +35,7 @@ const Index = () => {
         <div className="container max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Docker Todo-List 🐋</h1>
+              <h1 className="text-2xl font-bold tracking-tight">Docker To-Do List 🐋</h1>
               <p className="text-sm text-muted-foreground">
                 {stats.pending} Pendente · {stats.completed} concluído
               </p>
