@@ -1,4 +1,4 @@
-# 🐋 Docker Todo-List - Fullstack Application
+# 🐋 Docker To-Do List - Fullstack Application
 
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
