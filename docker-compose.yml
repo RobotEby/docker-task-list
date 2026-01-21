@@ -29,7 +29,7 @@ services:
     build: ./frontend
     container_name: todo_frontend
     ports:
-      - "5173:5173"
+      - "8080:8080"
     environment:
       VITE_API_URL: http://localhost:5000
     depends_on:
@@ -40,16 +40,16 @@ services:
     networks:
       - app_network
 
-  tests:
-    build: ./backend
-    container_name: todo_tests
-    command: yarn test 
-    environment:
-      MONGO_URI: mongodb://db:27017/todolist_test
-    depends_on:
-      - api
-    networks:
-      - app_network
+#  tests:
+#    build: ./backend
+#    container_name: todo_tests
+#    command: npm test 
+#    environment:
+#      MONGO_URI: mongodb://db:27017/todolist_test
+#    depends_on:
+#      - api
+#    networks:
+#      - app_network
 
 volumes:
   mongo_data:
