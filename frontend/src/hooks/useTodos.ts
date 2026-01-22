@@ -3,6 +3,17 @@ import { Todo, TodoStats } from '@/types/todo';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+const getOrCreateUserId = () => {
+  let id = localStorage.getItem('todo_user_id');
+  if (!id) {
+    id = `user_${Math.random().toString(36).substring(2, 11)}`;
+    localStorage.setItem('todo_user_id', id);
+  }
+  return id;
+};
+
+const USER_ID = getOrCreateUserId();
+
 export function useTodos() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -11,7 +22,9 @@ export function useTodos() {
   const fetchTodos = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/todos`);
+      const res = await fetch(`${API_URL}/todos`, {
+        headers: { userid: USER_ID },
+      });
       if (!res.ok) throw new Error('Falha ao obter tarefas');
       const data = await res.json();
       setTodos(data);
@@ -31,7 +44,10 @@ export function useTodos() {
     try {
       const res = await fetch(`${API_URL}/todos`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          userid: USER_ID,
+        },
         body: JSON.stringify({ text }),
       });
       if (!res.ok) throw new Error('Falha ao adicionar tarefa');
@@ -46,7 +62,10 @@ export function useTodos() {
 
   const toggleTodo = useCallback(async (id: string) => {
     try {
-      const res = await fetch(`${API_URL}/todos/${id}`, { method: 'PUT' });
+      const res = await fetch(`${API_URL}/todos/${id}`, {
+        method: 'PUT',
+        headers: { userid: USER_ID },
+      });
       if (!res.ok) throw new Error('Falha ao atualizar tarefas');
       const updatedTodo = await res.json();
       setTodos((prev) => prev.map((t) => (t._id === id ? updatedTodo : t)));
@@ -57,7 +76,11 @@ export function useTodos() {
 
   const deleteTodo = useCallback(async (id: string) => {
     try {
-      await fetch(`${API_URL}/todos/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_URL}/todos/${id}`, {
+        method: 'DELETE',
+        headers: { userid: USER_ID },
+      });
+      if (!res.ok) throw new Error('Falha ao excluir tarefa');
       setTodos((prev) => prev.filter((t) => t._id !== id));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao excluir tarefa');
@@ -68,7 +91,10 @@ export function useTodos() {
     try {
       const res = await fetch(`${API_URL}/todos/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          userid: USER_ID,
+        },
         body: JSON.stringify({ text: newText }),
       });
       if (!res.ok) throw new Error('Falha ao editar tarefa');
