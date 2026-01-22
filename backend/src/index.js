@@ -7,8 +7,10 @@ const app = express();
 const port = process.env.PORT || 5000;
 const mongoURI = process.env.MONGO_URI || 'mongodb://localhost:27017/todolist';
 
-app.use(cors());
-app.use(json());
+
+app.use(cors({
+  origin: 'https://docker-task-list.vercel.app' 
+}));app.use(json());
 
 connect(mongoURI)
   .then(() => console.log('Connected MongoDB'))
@@ -34,6 +36,7 @@ app.post('/todos', async (req, res) => {
 
 app.put('/todos/:id', async (req, res) => {
   const todo = await Todo.findById(req.params.id);
+  
   todo.completed = !todo.completed;
   await todo.save();
   res.json(todo);
@@ -46,17 +49,4 @@ app.delete('/todos/:id', async (req, res) => {
 
 app.listen(port, () => {
   console.log(` Server running on port ${port}`);
-});
-
-app.patch('/todos/:id', async (req, res) => {
-  try {
-    const updatedTodo = await Todo.findByIdAndUpdate(
-      req.params.id,
-      { text: req.body.text },
-      { new: true },
-    );
-    res.json(updatedTodo);
-  } catch (err) {
-    res.status(500).json({ error: 'Error editing task' });
-  }
 });
