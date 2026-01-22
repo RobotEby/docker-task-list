@@ -47,3 +47,16 @@ app.delete('/todos/:id', async (req, res) => {
 app.listen(port, () => {
   console.log(` Server running on port ${port}`);
 });
+
+app.patch('/todos/:id', async (req, res) => {
+  try {
+    const updatedTodo = await Todo.findByIdAndUpdate(
+      req.params.id,
+      { text: req.body.text },
+      { new: true },
+    );
+    res.json(updatedTodo);
+  } catch (err) {
+    res.status(500).json({ error: 'Error editing task' });
+  }
+});
