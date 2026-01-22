@@ -1,0 +1,40 @@
+# Node dependencies
+node_modules/
+*/node_modules/
+
+# Build and Distribution Files
+dist/
+build/
+*/dist/
+*/build/
+
+# Logs and debug files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDEs and Operating System
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Docker - Ignore local database data if mapped to the project folder
+mongo-data/
+/data/db
+
+# Testes - Relatórios de cobertura
+coverage/
+*/coverage/
+
+# Delete temporary files
+*.tsbuildinfo
