@@ -1,11 +1,20 @@
 FROM node:20-alpine
 
-WORKDIR /app
+RUN mkdir -p /app/frontend && chown -R node:node /app/frontend
 
-COPY package*.json ./
+WORKDIR /app/frontend
+
+USER node
+
+COPY --chown=node:node package*.json ./
+
 RUN npm install
 
-COPY . .
+ARG VITE_API_URL
+
+ENV VITE_API_URL=$VITE_API_URL
+
+COPY --chown=node:node . .
 
 EXPOSE 8080
 
