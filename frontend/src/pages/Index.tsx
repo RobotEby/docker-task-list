@@ -1,13 +1,31 @@
 import { useState, useEffect } from 'react';
-import { Moon, Sun, RefreshCw } from 'lucide-react';
+import { Moon, Sun, RefreshCw, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TodoInput, TodoList, StatsPanel } from '@/components/todo';
 import { useTodos } from '@/hooks/useTodos';
-import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const Index = () => {
+  const { user, logout, isLoading: authLoading } = useAuth();
   const { todos, loading, error, stats, addTodo, toggleTodo, deleteTodo, editTodo, refetch } =
     useTodos();
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <RefreshCw className="animate-spin text-primary" size={48} />
+      </div>
+    );
+  }
+
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== 'undefined') {
       return (
@@ -44,6 +62,27 @@ const Index = () => {
               <Button variant="ghost" size="icon" onClick={() => setIsDark(!isDark)}>
                 {isDark ? <Sun size={18} /> : <Moon size={18} />}
               </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <User size={18} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium">Conta</p>
+                      <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout} className="text-destructive cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sair
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
