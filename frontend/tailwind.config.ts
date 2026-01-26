@@ -1,8 +1,8 @@
 import type { Config } from 'tailwindcss';
-import tailwindAnimate from 'tailwindcss-animate'; // 1. Importe como ES Module
+import tailwindAnimate from 'tailwindcss-animate';
 
 export default {
-  darkMode: 'class', // 2. Corrigido para string simples
+  darkMode: 'class',
   content: [
     './pages/**/*.{ts,tsx}',
     './components/**/*.{ts,tsx}',
