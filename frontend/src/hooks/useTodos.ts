@@ -157,6 +157,9 @@ export function useTodos() {
 
   const reorderTodos = useCallback(
     async (activeId: string, overId: string) => {
+      const previousTodos = todos;
+      let reordered: Todo[] = previousTodos;
+
       setTodos((prev) => {
         const oldIndex = prev.findIndex((t) => t._id === activeId);
         const newIndex = prev.findIndex((t) => t._id === overId);
@@ -167,18 +170,32 @@ export function useTodos() {
         const [removed] = newTodos.splice(oldIndex, 1);
         newTodos.splice(newIndex, 0, removed);
 
+        reordered = newTodos;
         return newTodos;
       });
 
+      if (reordered === previousTodos) return;
+
       try {
-        await fetch(`${API_URL}/todos/reorder`, {
-          method: 'POST',
+        const res = await fetch(`${API_URL}/todos/reorder`, {
+          method: 'PATCH',
           headers: getHeaders(),
-          body: JSON.stringify({ activeId, overId }),
+          body: JSON.stringify({ orderedIds: reordered.map((t) => t._id) }),
         });
-      } catch {}
+
+        if (handleUnauthorized(res)) return;
+        if (!res.ok) throw new Error('Falha ao salvar a nova ordem das tarefas');
+
+        const updatedTodos = await res.json();
+        setTodos(updatedTodos);
+      } catch (err) {
+        // A ordenação é revertida para o estado anterior conhecido do servidor,
+        // em vez de deixar a UI mostrar uma ordem que não foi persistida.
+        setTodos(previousTodos);
+        setError(err instanceof Error ? err.message : 'Falha ao salvar a nova ordem das tarefas');
+      }
     },
-    [getHeaders],
+    [todos, getHeaders, handleUnauthorized],
   );
 
   const stats: TodoStats = useMemo(() => {

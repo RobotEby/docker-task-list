@@ -18,14 +18,6 @@ const Index = () => {
   const { todos, loading, error, stats, addTodo, toggleTodo, deleteTodo, editTodo, refetch } =
     useTodos();
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <RefreshCw className="animate-spin text-primary" size={48} />
-      </div>
-    );
-  }
-
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== 'undefined') {
       return (
@@ -46,6 +38,14 @@ const Index = () => {
       localStorage.setItem('theme', 'light');
     }
   }, [isDark]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <RefreshCw className="animate-spin text-primary" size={48} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
