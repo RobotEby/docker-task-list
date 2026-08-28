@@ -52,16 +52,18 @@ services:
     networks:
       - app_network
 
-#  tests:
-#    build: ./backend
-#    container_name: todo_tests
-#    command: npm test 
-#    environment:
-#      MONGO_URI: mongodb://db:27017/todolist_test
-#    depends_on:
-#      - api
-#    networks:
-#      - app_network
+  # Runs the real backend test suite (Jest + Supertest with mocked Mongoose
+  # models). No MongoDB connection is required for this suite, so `tests`
+  # intentionally does not depend on `db`.
+  tests:
+    build: ./backend
+    container_name: todo_tests
+    command: npm test
+    environment:
+      NODE_ENV: test
+      JWT_SECRET: test-secret-not-for-production
+    networks:
+      - app_network
 
 volumes:
   mongo_data:
