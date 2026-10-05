@@ -1,5 +1,6 @@
 import { Todo } from '../models/Todo.js';
 import { ApiError } from '../utils/ApiError.js';
+import { computeReorder, nextOrderValue } from '../utils/order.js';
 import { validateTodoText, validateDueDate, isValidObjectId } from '../utils/validators.js';
 
 export async function listTodos(req, res, next) {
@@ -17,12 +18,15 @@ export async function createTodo(req, res, next) {
     validateTodoText(text);
     const parsedDueDate = validateDueDate(dueDate);
 
-    const count = await Todo.countDocuments({ userId: req.userId });
+    // One past the current highest value. Using the document count here would
+    // reuse an existing `order` after any deletion and silently tie two tasks.
+    const last = await Todo.findOne({ userId: req.userId }).sort({ order: -1 }).select('order');
+    const order = nextOrderValue(last?.order);
 
     const newTodo = await Todo.create({
       text: text.trim(),
       dueDate: parsedDueDate,
-      order: count,
+      order,
       userId: req.userId,
     });
 
@@ -106,23 +110,29 @@ export async function reorderTodos(req, res, next) {
     if (!orderedIds.every(isValidObjectId)) {
       throw new ApiError(400, 'orderedIds contém um id inválido');
     }
+    if (new Set(orderedIds.map(String)).size !== orderedIds.length) {
+      throw new ApiError(400, 'orderedIds contém ids duplicados');
+    }
 
-    const ownedCount = await Todo.countDocuments({
-      _id: { $in: orderedIds },
-      userId: req.userId,
-    });
-    if (ownedCount !== orderedIds.length) {
+    // `orderedIds` may be a subset (e.g. a filtered view). The listed tasks are
+    // rearranged among the positions they already hold; the others keep theirs.
+    const current = await Todo.find({ userId: req.userId }).sort({ order: 1, createdAt: -1 });
+    const owned = new Set(current.map((todo) => String(todo._id)));
+    if (!orderedIds.every((id) => owned.has(String(id)))) {
       throw new ApiError(403, 'Uma ou mais tarefas não pertencem ao usuário autenticado');
     }
 
-    await Todo.bulkWrite(
-      orderedIds.map((id, index) => ({
-        updateOne: {
-          filter: { _id: id, userId: req.userId },
-          update: { $set: { order: index } },
-        },
-      })),
-    );
+    const { updates } = computeReorder(current, orderedIds);
+    if (updates.length > 0) {
+      await Todo.bulkWrite(
+        updates.map(({ id, order }) => ({
+          updateOne: {
+            filter: { _id: id, userId: req.userId },
+            update: { $set: { order } },
+          },
+        })),
+      );
+    }
 
     const todos = await Todo.find({ userId: req.userId }).sort({ order: 1, createdAt: -1 });
     res.json(todos);
