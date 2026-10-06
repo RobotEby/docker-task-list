@@ -61,6 +61,14 @@ describe('GET /todos', () => {
   });
 });
 
+function mockHighestOrder(order) {
+  mockTodoModel.findOne.mockReturnValueOnce({
+    sort: jest.fn().mockReturnValue({
+      select: jest.fn().mockResolvedValue(order === undefined ? null : { order }),
+    }),
+  });
+}
+
 describe('POST /todos', () => {
   test('rejects an empty text', async () => {
     const res = await request(app)
@@ -72,7 +80,7 @@ describe('POST /todos', () => {
   });
 
   test('creates a todo including an optional dueDate', async () => {
-    mockTodoModel.countDocuments.mockResolvedValueOnce(0);
+    mockHighestOrder(undefined);
     mockTodoModel.create.mockResolvedValueOnce({
       _id: '1',
       text: 'Buy milk',
@@ -87,53 +95,104 @@ describe('POST /todos', () => {
 
     expect(res.status).toBe(201);
     expect(mockTodoModel.create).toHaveBeenCalledWith(
-      expect.objectContaining({ text: 'Buy milk', userId }),
+      expect.objectContaining({ text: 'Buy milk', userId, order: 0 }),
     );
+  });
+
+  test('assigns one past the highest order, even after deletions left a gap', async () => {
+    // e.g. tasks with order 1 and 2 remain (order 0 was deleted): count is 2,
+    // but the new task must get 3, not 2.
+    mockHighestOrder(2);
+    mockTodoModel.create.mockResolvedValueOnce({ _id: '9', text: 'New', userId, order: 3 });
+
+    await request(app)
+      .post('/todos')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ text: 'New' });
+
+    expect(mockTodoModel.create).toHaveBeenCalledWith(expect.objectContaining({ order: 3 }));
   });
 });
 
 describe('PATCH /todos/reorder', () => {
-  test('rejects an empty list', async () => {
-    const res = await request(app)
+  const [A, B, C] = [
+    '507f1f77bcf86cd799439011',
+    '507f1f77bcf86cd799439012',
+    '507f1f77bcf86cd799439013',
+  ];
+  const stored = [
+    { _id: A, order: 0 },
+    { _id: B, order: 1 },
+    { _id: C, order: 2 },
+  ];
+
+  function mockFind(...results) {
+    results.forEach((result) =>
+      mockTodoModel.find.mockReturnValueOnce({ sort: jest.fn().mockResolvedValue(result) }),
+    );
+  }
+
+  const reorder = (orderedIds) =>
+    request(app)
       .patch('/todos/reorder')
       .set('Authorization', `Bearer ${authToken}`)
-      .send({ orderedIds: [] });
+      .send({ orderedIds });
 
+  test('rejects an empty list', async () => {
+    expect((await reorder([])).status).toBe(400);
+  });
+
+  test('rejects duplicate ids', async () => {
+    const res = await reorder([A, A]);
     expect(res.status).toBe(400);
+    expect(mockTodoModel.bulkWrite).not.toHaveBeenCalled();
   });
 
   test('rejects ids that do not belong to the authenticated user', async () => {
-    mockTodoModel.countDocuments.mockResolvedValueOnce(1); // only 1 of 2 ids owned
-
-    const res = await request(app)
-      .patch('/todos/reorder')
-      .set('Authorization', `Bearer ${authToken}`)
-      .send({ orderedIds: ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'] });
-
+    mockFind(stored);
+    const res = await reorder([A, '507f1f77bcf86cd7994390ff']);
     expect(res.status).toBe(403);
+    expect(mockTodoModel.bulkWrite).not.toHaveBeenCalled();
   });
 
-  test('persists the new order and returns the resorted list', async () => {
-    const ids = ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'];
-    mockTodoModel.countDocuments.mockResolvedValueOnce(ids.length);
-    mockTodoModel.bulkWrite.mockResolvedValueOnce({});
+  test('persists a full reorder and returns the resorted list', async () => {
     const resorted = [
-      { _id: ids[0], order: 0 },
-      { _id: ids[1], order: 1 },
+      { _id: C, order: 0 },
+      { _id: A, order: 1 },
+      { _id: B, order: 2 },
     ];
-    mockTodoModel.find.mockReturnValue({ sort: jest.fn().mockResolvedValue(resorted) });
+    mockFind(stored, resorted);
+    mockTodoModel.bulkWrite.mockResolvedValueOnce({});
 
-    const res = await request(app)
-      .patch('/todos/reorder')
-      .set('Authorization', `Bearer ${authToken}`)
-      .send({ orderedIds: ids });
+    const res = await reorder([C, A, B]);
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual(resorted);
     expect(mockTodoModel.bulkWrite).toHaveBeenCalledWith([
-      { updateOne: { filter: { _id: ids[0], userId }, update: { $set: { order: 0 } } } },
-      { updateOne: { filter: { _id: ids[1], userId }, update: { $set: { order: 1 } } } },
+      { updateOne: { filter: { _id: C, userId }, update: { $set: { order: 0 } } } },
+      { updateOne: { filter: { _id: A, userId }, update: { $set: { order: 1 } } } },
+      { updateOne: { filter: { _id: B, userId }, update: { $set: { order: 2 } } } },
     ]);
+  });
+
+  test('a partial reorder only rewrites the slots of the listed tasks', async () => {
+    mockFind(stored, stored);
+    mockTodoModel.bulkWrite.mockResolvedValueOnce({});
+
+    const res = await reorder([C, A]); // B is not listed and must keep order 1
+
+    expect(res.status).toBe(200);
+    expect(mockTodoModel.bulkWrite).toHaveBeenCalledWith([
+      { updateOne: { filter: { _id: C, userId }, update: { $set: { order: 0 } } } },
+      { updateOne: { filter: { _id: A, userId }, update: { $set: { order: 2 } } } },
+    ]);
+  });
+
+  test('skips the write entirely when nothing changes', async () => {
+    mockFind(stored, stored);
+    const res = await reorder([A, B, C]);
+    expect(res.status).toBe(200);
+    expect(mockTodoModel.bulkWrite).not.toHaveBeenCalled();
   });
 });
 

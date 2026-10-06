@@ -142,7 +142,7 @@ covered by `npm run lint`, `npm run typecheck`, and `npm run build` in CI.
 | POST | `/todos` | Yes | Create a task |
 | PUT | `/todos/:id` | Yes | Toggle `completed` |
 | PATCH | `/todos/:id` | Yes | Edit `text` and/or `dueDate` |
-| PATCH | `/todos/reorder` | Yes | Persist a new task order (`{ orderedIds: string[] }`) |
+| PATCH | `/todos/reorder` | Yes | Persist a new task order (`{ orderedIds: string[] }`). The list may be a subset (e.g. a filtered view): listed tasks are rearranged among the positions they already hold and the rest keep theirs. Duplicate ids → 400; ids not owned by the user → 403 |
 | DELETE | `/todos/:id` | Yes | Delete a task |
 | GET | `/health` | No | Liveness/readiness check |
 
